@@ -8,6 +8,7 @@ export type GameRoom = {
   status: GameStatus;
   playerCount: number;
   createdAt: Date;
+  buyInUnit: number; // 一手筹码数（最低购入单位）
 };
 
 export type Player = {
@@ -31,4 +32,4 @@ export type Settlement = Player & {
   amount: number;
 };
 
-export type ViewType = 'rooms' | 'create' | 'buyin' | 'game' | 'settlement';
+export type ViewType = 'rooms' | 'create' | 'buyin' | 'game' | 'settlement' | 'recordround';

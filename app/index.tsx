@@ -1,6 +1,7 @@
 import BuyIn from '@/components/poker/BuyIn';
 import CreateRoom from '@/components/poker/CreateRoom';
 import GameScreen from '@/components/poker/GameScreen';
+import RecordRound from '@/components/poker/RecordRound';
 import RoomsList from '@/components/poker/RoomsList';
 import SettlementScreen from '@/components/poker/SettlementScreen';
 import { GameRoom, Player, Round, ViewType } from '@/types/game';
@@ -10,8 +11,8 @@ import { Alert } from 'react-native';
 export default function PokerScreen() {
   const [currentView, setCurrentView] = useState<ViewType>('rooms');
   const [rooms, setRooms] = useState<GameRoom[]>([
-    { id: '1', name: '周五夜局', status: 'playing', playerCount: 6, createdAt: new Date() },
-    { id: '2', name: '练习局', status: 'waiting', playerCount: 2, createdAt: new Date() },
+    { id: '1', name: '周五夜局', status: 'playing', playerCount: 6, createdAt: new Date(), buyInUnit: 1000 },
+    { id: '2', name: '练习局', status: 'waiting', playerCount: 2, createdAt: new Date(), buyInUnit: 500 },
   ]);
   const [selectedRoom, setSelectedRoom] = useState<GameRoom | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -26,17 +27,19 @@ export default function PokerScreen() {
     }
   };
 
-  const handleCreateRoom = (name: string, initialChips: string) => {
+  const handleCreateRoom = (name: string, buyInUnit: string) => {
     const newRoom: GameRoom = {
       id: Date.now().toString(),
       name,
       status: 'waiting',
       playerCount: 0,
       createdAt: new Date(),
+      buyInUnit: parseFloat(buyInUnit),
     };
     setRooms([newRoom, ...rooms]);
-    Alert.alert('成功', '房间已创建并上链', [
-      { text: '确定', onPress: () => setCurrentView('rooms') }
+    setSelectedRoom(newRoom);
+    Alert.alert('成功', `房间已创建并上链\n一手筹码：¥${buyInUnit}`, [
+      { text: '开始买入', onPress: () => setCurrentView('buyin') }
     ]);
   };
 
@@ -60,7 +63,45 @@ export default function PokerScreen() {
   };
 
   const handleRecordRound = () => {
-    Alert.alert('记录盈亏', '此功能将打开记录界面，支持多人验证');
+    setCurrentView('recordround');
+  };
+
+  const handleRebuy = (playerId: string, hands: number) => {
+    setPlayers(players.map(p => {
+      if (p.id === playerId && selectedRoom) {
+        const rebuyAmount = selectedRoom.buyInUnit * hands;
+        return {
+          ...p,
+          buyIn: p.buyIn + rebuyAmount,
+          currentChips: p.currentChips + rebuyAmount,
+        };
+      }
+      return p;
+    }));
+  };
+
+  const handleSaveRound = (changes: { playerId: string; amount: number }[]) => {
+    // 更新玩家筹码和盈亏
+    setPlayers(players.map(p => {
+      const change = changes.find(c => c.playerId === p.id);
+      if (change) {
+        return {
+          ...p,
+          currentChips: p.currentChips + change.amount,
+          profit: p.profit + change.amount,
+        };
+      }
+      return p;
+    }));
+
+    // 保存轮次记录
+    const newRound: Round = {
+      id: Date.now().toString(),
+      timestamp: new Date(),
+      changes,
+      verified: true,
+    };
+    setRounds([...rounds, newRound]);
   };
 
   return (
@@ -95,6 +136,14 @@ export default function PokerScreen() {
           onBack={() => setCurrentView('rooms')}
           onRecordRound={handleRecordRound}
           onShowSettlement={() => setCurrentView('settlement')}
+          onRebuy={handleRebuy}
+        />
+      )}
+      {currentView === 'recordround' && (
+        <RecordRound
+          players={players}
+          onBack={() => setCurrentView('game')}
+          onSaveRound={handleSaveRound}
         />
       )}
       {currentView === 'settlement' && (

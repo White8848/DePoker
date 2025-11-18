@@ -16,12 +16,14 @@ type Props = {
 
 export default function BuyIn({ room, players, onBack, onAddPlayer, onStartGame }: Props) {
   const [playerName, setPlayerName] = React.useState('');
-  const [buyInAmount, setBuyInAmount] = React.useState('');
+  const [buyInHands, setBuyInHands] = React.useState('1');
+
+  const buyInAmount = parseFloat(buyInHands || '0') * room.buyInUnit;
 
   const handleBuyIn = () => {
-    onAddPlayer(playerName, parseFloat(buyInAmount));
+    onAddPlayer(playerName, buyInAmount);
     setPlayerName('');
-    setBuyInAmount('');
+    setBuyInHands('1');
   };
 
   return (
@@ -36,7 +38,7 @@ export default function BuyIn({ room, players, onBack, onAddPlayer, onStartGame 
 
       <View style={styles.roomInfoCard}>
         <Text style={styles.roomInfoTitle}>{room.name}</Text>
-        <Text style={styles.roomInfoSubtitle}>当前玩家：{players.length} 人</Text>
+        <Text style={styles.roomInfoSubtitle}>当前玩家：{players.length} 人 · 一手筹码：¥{room.buyInUnit}</Text>
       </View>
 
       <ScrollView style={styles.form}>
@@ -52,15 +54,20 @@ export default function BuyIn({ room, players, onBack, onAddPlayer, onStartGame 
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>买入金额</Text>
+          <Text style={styles.label}>买入手数</Text>
           <TextInput
             style={styles.input}
-            placeholder="请输入买入金额"
+            placeholder="请输入买入手数（默认1手）"
             placeholderTextColor={AppColors.gray}
-            value={buyInAmount}
-            onChangeText={setBuyInAmount}
+            value={buyInHands}
+            onChangeText={setBuyInHands}
             keyboardType="numeric"
           />
+          <View style={styles.amountDisplay}>
+            <Text style={styles.amountLabel}>买入金额：</Text>
+            <Text style={styles.amountValue}>¥{buyInAmount}</Text>
+            <Text style={styles.amountFormula}>（{buyInHands || 0}手 × ¥{room.buyInUnit}）</Text>
+          </View>
           <Text style={styles.hint}>实际转账请在游戏结束后根据指引进行</Text>
         </View>
 
@@ -78,8 +85,8 @@ export default function BuyIn({ room, players, onBack, onAddPlayer, onStartGame 
         )}
 
         <TouchableOpacity
-          style={[styles.primaryButton, (!playerName || !buyInAmount) && styles.disabledButton]}
-          disabled={!playerName || !buyInAmount}
+          style={[styles.primaryButton, (!playerName || !buyInHands || parseFloat(buyInHands) < 1) && styles.disabledButton]}
+          disabled={!playerName || !buyInHands || parseFloat(buyInHands) < 1}
           onPress={handleBuyIn}
         >
           <Ionicons name="cash" size={20} color={AppColors.white} />
@@ -163,6 +170,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: AppColors.lightGray,
     marginTop: 4,
+  },
+  amountDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: AppColors.cardBackground,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: AppColors.primary,
+  },
+  amountLabel: {
+    fontSize: 14,
+    color: AppColors.gray,
+  },
+  amountValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: AppColors.primary,
+    marginLeft: 8,
+  },
+  amountFormula: {
+    fontSize: 12,
+    color: AppColors.lightGray,
+    marginLeft: 8,
   },
   playersPreview: {
     backgroundColor: AppColors.background,

@@ -4,7 +4,7 @@ import { AppColors } from '@/constants/colors';
 import { GameRoom, Player, Round } from '@/types/game';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 type Props = {
   room: GameRoom;
@@ -13,10 +13,38 @@ type Props = {
   onBack: () => void;
   onRecordRound: () => void;
   onShowSettlement: () => void;
+  onRebuy: (playerId: string, hands: number) => void;
 };
 
-export default function GameScreen({ room, players, rounds, onBack, onRecordRound, onShowSettlement }: Props) {
+export default function GameScreen({ room, players, rounds, onBack, onRecordRound, onShowSettlement, onRebuy }: Props) {
   const totalBuyIn = players.reduce((sum, p) => sum + p.buyIn, 0);
+
+  const handleRebuy = (playerId: string) => {
+    Alert.alert('追加买入', '请输入要购买的手数：', [
+      { text: '取消', style: 'cancel' },
+      { 
+        text: '1手',
+        onPress: () => {
+          onRebuy(playerId, 1);
+          Alert.alert('成功', `追加买入1手（¥${room.buyInUnit}）已上链验证`);
+        }
+      },
+      { 
+        text: '2手',
+        onPress: () => {
+          onRebuy(playerId, 2);
+          Alert.alert('成功', `追加买入2手（¥${room.buyInUnit * 2}）已上链验证`);
+        }
+      },
+      { 
+        text: '3手',
+        onPress: () => {
+          onRebuy(playerId, 3);
+          Alert.alert('成功', `追加买入3手（¥${room.buyInUnit * 3}）已上链验证`);
+        }
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: AppColors.background }} edges={['top', 'bottom']}>
@@ -70,6 +98,13 @@ export default function GameScreen({ room, players, rounds, onBack, onRecordRoun
               <Text style={[styles.profit, player.profit >= 0 ? styles.profitPositive : styles.profitNegative]}>
                 {player.profit >= 0 ? '+' : ''}{player.profit}
               </Text>
+              <TouchableOpacity 
+                style={styles.rebuyButton}
+                onPress={() => handleRebuy(player.id)}
+              >
+                <Ionicons name="add" size={14} color={AppColors.primary} />
+                <Text style={styles.rebuyButtonText}>追加买入</Text>
+              </TouchableOpacity>
             </View>
           </View>
         ))}
@@ -216,6 +251,23 @@ const styles = StyleSheet.create({
   },
   profitNegative: {
     color: AppColors.loss,
+  },
+  rebuyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: AppColors.surfaceBackground,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: AppColors.primary,
+  },
+  rebuyButtonText: {
+    fontSize: 11,
+    color: AppColors.primary,
+    fontWeight: '600',
   },
   recordButton: {
     backgroundColor: AppColors.success,

@@ -43,7 +43,7 @@ export default function CreateRoom({ onBack, onCreateRoom }: Props) {
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>初始筹码（记账单位）</Text>
+          <Text style={styles.label}>一手筹码数（最低购入单位）</Text>
           <TextInput
             style={styles.input}
             placeholder="例如：1000"
@@ -52,7 +52,7 @@ export default function CreateRoom({ onBack, onCreateRoom }: Props) {
             onChangeText={setInitialChips}
             keyboardType="numeric"
           />
-          <Text style={styles.hint}>此金额仅用于记账，不涉及实际货币</Text>
+          <Text style={styles.hint}>玩家只能购买一手整倍数的筹码，默认买入1手</Text>
         </View>
 
         <View style={styles.blockchainInfo}>
