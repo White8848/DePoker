@@ -1,50 +1,60 @@
-# Welcome to your Expo app 👋
+# DePoker - 德扑记账应用 🎮
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+基于区块链技术的德州扑克记账应用，确保游戏过程的透明性和数据不可篡改性。
 
-## Get started
+## 快速开始
 
-1. Install dependencies
+1. 安装依赖
 
    ```bash
    npm install
    ```
 
-2. Start the app
+2. 启动应用
 
    ```bash
-   npx expo start
+   npm start
    ```
 
-In the output, you'll find options to open the app in a
+3. 运行应用
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+   - Android: `npm run android`
+   - iOS: `npm run ios`
+   - Web: `npm run web`
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 功能特性
 
-## Get a fresh project
+✅ 创建游戏房间  
+✅ 玩家买入管理  
+✅ 实时筹码追踪  
+✅ 盈亏自动计算  
+✅ 游戏结算与转账指引  
+🔄 区块链验证（开发中）
 
-When you're ready, run:
+## 项目结构
 
-```bash
-npm run reset-project
-```
+详细的项目结构说明请查看 [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## UI设计
 
-## Learn more
+完整的UI设计文档请查看 [UI_DESIGN.md](./UI_DESIGN.md)
 
-To learn more about developing your project with Expo, look at the following resources:
+## 技术栈
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- React Native (Expo ~54.0.25)
+- TypeScript
+- Expo Router
+- React Native Safe Area Context
 
-## Join the community
+## 开发计划
 
-Join our community of developers creating universal apps.
+- [ ] 记录每轮盈亏详细功能
+- [ ] 多人验证机制
+- [ ] 区块链集成
+- [ ] 数据持久化
+- [ ] 钱包集成
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 许可证
+
+MIT
+
