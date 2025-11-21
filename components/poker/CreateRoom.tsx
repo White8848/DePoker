@@ -27,15 +27,15 @@ export default function CreateRoom({ onBack, onCreateRoom }: Props) {
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
-        <ThemedText type="title">创建新房间</ThemedText>
+        <ThemedText type="title">Create New Room</ThemedText>
       </View>
 
       <ScrollView style={styles.form}>
         <View style={styles.formGroup}>
-          <Text style={styles.label}>房间名称</Text>
+          <Text style={styles.label}>Room Name</Text>
           <TextInput
             style={styles.input}
-            placeholder="例如：周五夜局"
+            placeholder="e.g., Friday Night Game"
             placeholderTextColor={AppColors.gray}
             value={roomName}
             onChangeText={setRoomName}
@@ -43,22 +43,22 @@ export default function CreateRoom({ onBack, onCreateRoom }: Props) {
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>一手筹码数（最低购入单位）</Text>
+          <Text style={styles.label}>Buy-in Unit (Minimum Stack)</Text>
           <TextInput
             style={styles.input}
-            placeholder="例如：1000"
+            placeholder="e.g., 1000"
             placeholderTextColor={AppColors.gray}
             value={initialChips}
             onChangeText={setInitialChips}
             keyboardType="numeric"
           />
-          <Text style={styles.hint}>玩家只能购买一手整倍数的筹码，默认买入1手</Text>
+          <Text style={styles.hint}>Players can only buy in multiples of 1 stack, default is 1 stack</Text>
         </View>
 
         <View style={styles.blockchainInfo}>
           <Ionicons name="information-circle" size={20} color={AppColors.primary} />
           <Text style={styles.blockchainInfoText}>
-            房间创建后将在区块链上注册，确保所有交易记录不可篡改
+            Room will be registered on blockchain to ensure all transaction records are immutable
           </Text>
         </View>
 
@@ -68,7 +68,7 @@ export default function CreateRoom({ onBack, onCreateRoom }: Props) {
           onPress={handleCreate}
         >
           <Ionicons name="create" size={20} color={AppColors.white} />
-          <Text style={styles.primaryButtonText}>创建房间</Text>
+          <Text style={styles.primaryButtonText}>Create Room</Text>
         </TouchableOpacity>
       </ScrollView>
     </ThemedView>

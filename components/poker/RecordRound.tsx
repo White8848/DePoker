@@ -38,7 +38,7 @@ export default function RecordRound({ players, onBack, onSaveRound }: Props) {
   // 保存本轮记录
   const handleSave = () => {
     if (!isBalanced) {
-      Alert.alert('错误', `总盈亏必须为0！\n当前总和：${totalChange > 0 ? '+' : ''}${totalChange.toFixed(0)}`);
+      Alert.alert('Error', `Total P/L must be 0!\nCurrent total: ${totalChange > 0 ? '+' : ''}${totalChange.toFixed(0)}`);
       return;
     }
 
@@ -47,14 +47,14 @@ export default function RecordRound({ players, onBack, onSaveRound }: Props) {
       amount: changes[p.id] || 0,
     }));
 
-    Alert.alert('确认', '确定要保存本轮记录并上链验证吗？', [
-      { text: '取消', style: 'cancel' },
+    Alert.alert('Confirm', 'Save this round and verify on blockchain?', [
+      { text: 'Cancel', style: 'cancel' },
       {
-        text: '确定',
+        text: 'Confirm',
         onPress: () => {
           onSaveRound(roundChanges);
-          Alert.alert('成功', '本轮记录已上链验证', [
-            { text: '确定', onPress: onBack }
+          Alert.alert('Success', 'Round record verified on blockchain', [
+            { text: 'OK', onPress: onBack }
           ]);
         }
       }
@@ -105,10 +105,10 @@ export default function RecordRound({ players, onBack, onSaveRound }: Props) {
 
         <View style={styles.hintCard}>
           <Ionicons name="information-circle" size={16} color={AppColors.primary} />
-          <Text style={styles.hintText}>向右滑动表示盈利，向左滑动表示亏损</Text>
+          <Text style={styles.hintText}>Slide right for profit, left for loss</Text>
         </View>
 
-        {/* 玩家盈亏调整列表 */}
+        {/* Player P/L Adjustment List */}
         <ScrollView style={styles.playersList}>
           {players.map((player) => {
             const change = changes[player.id] || 0;
@@ -119,7 +119,7 @@ export default function RecordRound({ players, onBack, onSaveRound }: Props) {
                 <View style={styles.playerHeader}>
                   <View style={styles.playerInfo}>
                     <Text style={styles.playerName}>{player.name}</Text>
-                    <Text style={styles.playerChips}>当前筹码: ¥{player.currentChips}</Text>
+                  <Text style={styles.playerChips}>Current chips: ${player.currentChips}</Text>
                   </View>
                   <View style={styles.changeDisplay}>
                     <Text style={[styles.changeAmount, change >= 0 ? styles.changePositive : styles.changeNegative]}>
@@ -189,7 +189,7 @@ export default function RecordRound({ players, onBack, onSaveRound }: Props) {
             onPress={handleReset}
           >
             <Ionicons name="refresh" size={20} color={AppColors.warning} />
-            <Text style={styles.resetButtonText}>重置</Text>
+            <Text style={styles.resetButtonText}>Reset</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -198,7 +198,7 @@ export default function RecordRound({ players, onBack, onSaveRound }: Props) {
             onPress={handleSave}
           >
             <Ionicons name="save" size={20} color={AppColors.white} />
-            <Text style={styles.saveButtonText}>保存并上链</Text>
+            <Text style={styles.saveButtonText}>Save to Blockchain</Text>
           </TouchableOpacity>
         </View>
       </ThemedView>

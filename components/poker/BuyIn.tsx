@@ -33,20 +33,20 @@ export default function BuyIn({ room, players, onBack, onAddPlayer, onStartGame 
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
-        <ThemedText type="title">玩家买入</ThemedText>
+        <ThemedText type="title">Player Buy-in</ThemedText>
       </View>
 
       <View style={styles.roomInfoCard}>
         <Text style={styles.roomInfoTitle}>{room.name}</Text>
-        <Text style={styles.roomInfoSubtitle}>当前玩家：{players.length} 人 · 一手筹码：¥{room.buyInUnit}</Text>
+        <Text style={styles.roomInfoSubtitle}>Players: {players.length} · Stack: ${room.buyInUnit}</Text>
       </View>
 
       <ScrollView style={styles.form}>
         <View style={styles.formGroup}>
-          <Text style={styles.label}>玩家昵称</Text>
+          <Text style={styles.label}>Player Name</Text>
           <TextInput
             style={styles.input}
-            placeholder="请输入您的昵称"
+            placeholder="Enter your nickname"
             placeholderTextColor={AppColors.gray}
             value={playerName}
             onChangeText={setPlayerName}
@@ -54,31 +54,31 @@ export default function BuyIn({ room, players, onBack, onAddPlayer, onStartGame 
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>买入手数</Text>
+          <Text style={styles.label}>Number of Stacks</Text>
           <TextInput
             style={styles.input}
-            placeholder="请输入买入手数（默认1手）"
+            placeholder="Enter stacks (default 1)"
             placeholderTextColor={AppColors.gray}
             value={buyInHands}
             onChangeText={setBuyInHands}
             keyboardType="numeric"
           />
           <View style={styles.amountDisplay}>
-            <Text style={styles.amountLabel}>买入金额：</Text>
-            <Text style={styles.amountValue}>¥{buyInAmount}</Text>
-            <Text style={styles.amountFormula}>（{buyInHands || 0}手 × ¥{room.buyInUnit}）</Text>
+            <Text style={styles.amountLabel}>Buy-in Amount:</Text>
+            <Text style={styles.amountValue}>${buyInAmount}</Text>
+            <Text style={styles.amountFormula}>({buyInHands || 0} stacks × ${room.buyInUnit})</Text>
           </View>
-          <Text style={styles.hint}>实际转账请在游戏结束后根据指引进行</Text>
+          <Text style={styles.hint}>Actual transfer will be guided after game ends</Text>
         </View>
 
         {players.length > 0 && (
           <View style={styles.playersPreview}>
-            <Text style={styles.label}>已加入玩家</Text>
+            <Text style={styles.label}>Joined Players</Text>
             {players.map((player) => (
               <View key={player.id} style={styles.playerItem}>
                 <Ionicons name="person-circle" size={24} color={AppColors.success} />
                 <Text style={styles.playerName}>{player.name}</Text>
-                <Text style={styles.playerChips}>¥{player.buyIn}</Text>
+                <Text style={styles.playerChips}>${player.buyIn}</Text>
               </View>
             ))}
           </View>
@@ -90,7 +90,7 @@ export default function BuyIn({ room, players, onBack, onAddPlayer, onStartGame 
           onPress={handleBuyIn}
         >
           <Ionicons name="cash" size={20} color={AppColors.white} />
-          <Text style={styles.primaryButtonText}>确认买入</Text>
+          <Text style={styles.primaryButtonText}>Confirm Buy-in</Text>
         </TouchableOpacity>
 
         {players.length >= 2 && (
@@ -99,7 +99,7 @@ export default function BuyIn({ room, players, onBack, onAddPlayer, onStartGame 
             onPress={onStartGame}
           >
             <Ionicons name="play" size={20} color={AppColors.success} />
-            <Text style={styles.secondaryButtonText}>开始游戏</Text>
+            <Text style={styles.secondaryButtonText}>Start Game</Text>
           </TouchableOpacity>
         )}
       </ScrollView>

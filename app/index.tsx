@@ -11,8 +11,8 @@ import { Alert } from 'react-native';
 export default function PokerScreen() {
   const [currentView, setCurrentView] = useState<ViewType>('rooms');
   const [rooms, setRooms] = useState<GameRoom[]>([
-    { id: '1', name: '周五夜局', status: 'playing', playerCount: 6, createdAt: new Date(), buyInUnit: 1000 },
-    { id: '2', name: '练习局', status: 'waiting', playerCount: 2, createdAt: new Date(), buyInUnit: 500 },
+    { id: '1', name: 'Friday Night Game', status: 'playing', playerCount: 6, createdAt: new Date(), buyInUnit: 1000 },
+    { id: '2', name: 'Practice Game', status: 'waiting', playerCount: 2, createdAt: new Date(), buyInUnit: 500 },
   ]);
   const [selectedRoom, setSelectedRoom] = useState<GameRoom | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -38,8 +38,8 @@ export default function PokerScreen() {
     };
     setRooms([newRoom, ...rooms]);
     setSelectedRoom(newRoom);
-    Alert.alert('成功', `房间已创建并上链\n一手筹码：¥${buyInUnit}`, [
-      { text: '开始买入', onPress: () => setCurrentView('buyin') }
+    Alert.alert('Success', `Room created and registered on blockchain\nStack: $${buyInUnit}`, [
+      { text: 'Start Buy-in', onPress: () => setCurrentView('buyin') }
     ]);
   };
 
@@ -52,7 +52,7 @@ export default function PokerScreen() {
       profit: 0,
     };
     setPlayers([...players, newPlayer]);
-    Alert.alert('成功', '买入记录已上链验证');
+    Alert.alert('Success', 'Buy-in record verified on blockchain');
   };
 
   const handleStartGame = () => {

@@ -25,9 +25,9 @@ export default function SettlementScreen({ players, onBack, onFinish }: Props) {
   const losers = settlements.filter(s => s.needsPay);
 
   const handleFinish = () => {
-    Alert.alert('确认', '确定要结束游戏并返回首页吗？', [
-      { text: '取消', style: 'cancel' },
-      { text: '确定', onPress: onFinish }
+    Alert.alert('Confirm', 'End game and return to home?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Confirm', onPress: onFinish }
     ]);
   };
 
@@ -38,16 +38,16 @@ export default function SettlementScreen({ players, onBack, onFinish }: Props) {
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
-        <ThemedText type="title">游戏结算</ThemedText>
+        <ThemedText type="title">Game Settlement</ThemedText>
       </View>
 
       <View style={styles.settlementSummary}>
         <Ionicons name="trophy" size={48} color={AppColors.gold} />
-        <Text style={styles.settlementTitle}>游戏结束</Text>
-        <Text style={styles.settlementSubtitle}>区块链验证完成</Text>
+        <Text style={styles.settlementTitle}>Game Over</Text>
+        <Text style={styles.settlementSubtitle}>Blockchain Verified</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>最终结算</Text>
+      <Text style={styles.sectionTitle}>Final Settlement</Text>
       <ScrollView style={styles.settlementList}>
         {settlements.map((player) => (
           <View key={player.id} style={styles.settlementCard}>
@@ -55,21 +55,21 @@ export default function SettlementScreen({ players, onBack, onFinish }: Props) {
               <Text style={styles.settlementName}>{player.name}</Text>
               <View style={[styles.settlementBadge, player.needsPay ? styles.badgeLose : styles.badgeWin]}>
                 <Text style={styles.badgeText}>
-                  {player.needsPay ? '需支付' : player.amount > 0 ? '赢家' : '平局'}
+                  {player.needsPay ? 'Owes' : player.amount > 0 ? 'Winner' : 'Even'}
                 </Text>
               </View>
             </View>
             <View style={styles.settlementDetails}>
               <View style={styles.settlementRow}>
-                <Text style={styles.settlementLabel}>买入:</Text>
-                <Text style={styles.settlementAmount}>¥{player.buyIn}</Text>
+                <Text style={styles.settlementLabel}>Buy-in:</Text>
+                <Text style={styles.settlementAmount}>${player.buyIn}</Text>
               </View>
               <View style={styles.settlementRow}>
-                <Text style={styles.settlementLabel}>最终:</Text>
-                <Text style={styles.settlementAmount}>¥{player.finalAmount}</Text>
+                <Text style={styles.settlementLabel}>Final:</Text>
+                <Text style={styles.settlementAmount}>${player.finalAmount}</Text>
               </View>
               <View style={styles.settlementRow}>
-                <Text style={styles.settlementLabel}>盈亏:</Text>
+                <Text style={styles.settlementLabel}>P/L:</Text>
                 <Text style={[styles.settlementProfit, player.needsPay ? styles.profitNegative : styles.profitPositive]}>
                   {player.needsPay ? '-' : '+'}{player.amount}
                 </Text>
@@ -81,21 +81,21 @@ export default function SettlementScreen({ players, onBack, onFinish }: Props) {
 
       {losers.length > 0 && winners.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>转账指引</Text>
+          <Text style={styles.sectionTitle}>Transfer Guide</Text>
           <View style={styles.transferGuide}>
             {losers.map((loser) => (
               <View key={loser.id} style={styles.transferCard}>
                 <Ionicons name="arrow-forward-circle" size={24} color={AppColors.transferIcon} />
                 <View style={styles.transferInfo}>
                   <Text style={styles.transferText}>
-                    <Text style={styles.transferBold}>{loser.name}</Text> 需支付
+                    <Text style={styles.transferBold}>{loser.name}</Text> owes
                   </Text>
                   {winners.map((winner) => {
                     const totalWinnings = winners.reduce((sum, w) => sum + w.amount, 0);
                     const shareAmount = (loser.amount * (winner.amount / totalWinnings)).toFixed(2);
                     return (
                       <Text key={winner.id} style={styles.transferDetail}>
-                        → 给 <Text style={styles.transferBold}>{winner.name}</Text>: ¥{shareAmount}
+                        → to <Text style={styles.transferBold}>{winner.name}</Text>: ${shareAmount}
                       </Text>
                     );
                   })}
@@ -107,7 +107,7 @@ export default function SettlementScreen({ players, onBack, onFinish }: Props) {
       )}
 
       <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
-        <Text style={styles.finishButtonText}>完成结算</Text>
+        <Text style={styles.finishButtonText}>Finish Settlement</Text>
       </TouchableOpacity>
     </ThemedView>
     </SafeAreaView>

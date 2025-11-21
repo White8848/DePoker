@@ -18,16 +18,16 @@ export default function RoomsList({ rooms, onCreateRoom, onSelectRoom }: Props) 
     <SafeAreaView style={{ flex: 1, backgroundColor: AppColors.background }} edges={['top', 'bottom']}>
     <ThemedView style={styles.container}>
       <View style={styles.header}>
-        <ThemedText type="title" style={styles.headerTitle}>德扑记账</ThemedText>
-        <ThemedText style={styles.subtitle}>区块链验证 · 安全可信</ThemedText>
+        <ThemedText type="title" style={styles.headerTitle}>Poker Ledger</ThemedText>
+        <ThemedText style={styles.subtitle}>Blockchain Verified · Secure & Trusted</ThemedText>
       </View>
 
       <TouchableOpacity style={styles.createButton} onPress={onCreateRoom}>
         <Ionicons name="add-circle" size={24} color={AppColors.white} />
-        <Text style={styles.createButtonText}>创建新房间</Text>
+        <Text style={styles.createButtonText}>Create New Room</Text>
       </TouchableOpacity>
 
-      <ThemedText type="subtitle" style={styles.sectionTitle}>当前房间</ThemedText>
+      <ThemedText type="subtitle" style={styles.sectionTitle}>Current Rooms</ThemedText>
 
       <ScrollView style={styles.roomsList}>
         {rooms.map((room) => (
@@ -47,14 +47,14 @@ export default function RoomsList({ rooms, onCreateRoom, onSelectRoom }: Props) 
               </View>
               <View style={[styles.statusBadge, { backgroundColor: AppColors[room.status] }]}>
                 <Text style={styles.statusText}>
-                  {room.status === 'playing' ? '进行中' : room.status === 'waiting' ? '等待中' : '已结束'}
+                  {room.status === 'playing' ? 'Playing' : room.status === 'waiting' ? 'Waiting' : 'Finished'}
                 </Text>
               </View>
             </View>
             <View style={styles.roomInfo}>
               <View style={styles.infoItem}>
                 <Ionicons name="people" size={16} color={AppColors.gray} />
-                <Text style={styles.infoText}>{room.playerCount} 位玩家</Text>
+                <Text style={styles.infoText}>{room.playerCount} Players</Text>
               </View>
               <View style={styles.infoItem}>
                 <Ionicons name="time" size={16} color={AppColors.gray} />
@@ -63,7 +63,7 @@ export default function RoomsList({ rooms, onCreateRoom, onSelectRoom }: Props) 
             </View>
             <View style={styles.blockchainBadge}>
               <Ionicons name="shield-checkmark" size={14} color={AppColors.primary} />
-              <Text style={styles.blockchainText}>区块链已验证</Text>
+              <Text style={styles.blockchainText}>Blockchain Verified</Text>
             </View>
           </TouchableOpacity>
         ))}

@@ -20,27 +20,27 @@ export default function GameScreen({ room, players, rounds, onBack, onRecordRoun
   const totalBuyIn = players.reduce((sum, p) => sum + p.buyIn, 0);
 
   const handleRebuy = (playerId: string) => {
-    Alert.alert('追加买入', '请输入要购买的手数：', [
-      { text: '取消', style: 'cancel' },
+    Alert.alert('Rebuy', 'Select number of stacks:', [
+      { text: 'Cancel', style: 'cancel' },
       { 
-        text: '1手',
+        text: '1 Stack',
         onPress: () => {
           onRebuy(playerId, 1);
-          Alert.alert('成功', `追加买入1手（¥${room.buyInUnit}）已上链验证`);
+          Alert.alert('Success', `Rebuy 1 stack ($${room.buyInUnit}) verified on blockchain`);
         }
       },
       { 
-        text: '2手',
+        text: '2 Stacks',
         onPress: () => {
           onRebuy(playerId, 2);
-          Alert.alert('成功', `追加买入2手（¥${room.buyInUnit * 2}）已上链验证`);
+          Alert.alert('Success', `Rebuy 2 stacks ($${room.buyInUnit * 2}) verified on blockchain`);
         }
       },
       { 
-        text: '3手',
+        text: '3 Stacks',
         onPress: () => {
           onRebuy(playerId, 3);
-          Alert.alert('成功', `追加买入3手（¥${room.buyInUnit * 3}）已上链验证`);
+          Alert.alert('Success', `Rebuy 3 stacks ($${room.buyInUnit * 3}) verified on blockchain`);
         }
       },
     ]);
@@ -55,7 +55,7 @@ export default function GameScreen({ room, players, rounds, onBack, onRecordRoun
         </TouchableOpacity>
         <View>
           <ThemedText type="title">{room.name}</ThemedText>
-          <Text style={styles.subtitle}>第 {rounds.length + 1} 轮</Text>
+          <Text style={styles.subtitle}>Round {rounds.length + 1}</Text>
         </View>
         <TouchableOpacity 
           style={styles.settleButton}
@@ -67,20 +67,20 @@ export default function GameScreen({ room, players, rounds, onBack, onRecordRoun
 
       <View style={styles.statsCard}>
         <View style={styles.statItem}>
-          <Text style={styles.statLabel}>总买入</Text>
-          <Text style={styles.statValue}>¥{totalBuyIn}</Text>
+          <Text style={styles.statLabel}>Total Buy-in</Text>
+          <Text style={styles.statValue}>${totalBuyIn}</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statLabel}>玩家数</Text>
+          <Text style={styles.statLabel}>Players</Text>
           <Text style={styles.statValue}>{players.length}</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statLabel}>已完成轮数</Text>
+          <Text style={styles.statLabel}>Rounds</Text>
           <Text style={styles.statValue}>{rounds.length}</Text>
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>玩家筹码</Text>
+      <Text style={styles.sectionTitle}>Player Chips</Text>
       <ScrollView style={styles.playersList}>
         {players.map((player, index) => (
           <View key={player.id} style={styles.playerCard}>
@@ -90,11 +90,11 @@ export default function GameScreen({ room, players, rounds, onBack, onRecordRoun
               </View>
               <View>
                 <Text style={styles.playerCardName}>{player.name}</Text>
-                <Text style={styles.playerBuyIn}>买入: ¥{player.buyIn}</Text>
+                <Text style={styles.playerBuyIn}>Buy-in: ${player.buyIn}</Text>
               </View>
             </View>
             <View style={styles.playerRight}>
-              <Text style={styles.currentChips}>¥{player.currentChips}</Text>
+              <Text style={styles.currentChips}>${player.currentChips}</Text>
               <Text style={[styles.profit, player.profit >= 0 ? styles.profitPositive : styles.profitNegative]}>
                 {player.profit >= 0 ? '+' : ''}{player.profit}
               </Text>
@@ -103,7 +103,7 @@ export default function GameScreen({ room, players, rounds, onBack, onRecordRoun
                 onPress={() => handleRebuy(player.id)}
               >
                 <Ionicons name="add" size={14} color={AppColors.primary} />
-                <Text style={styles.rebuyButtonText}>追加买入</Text>
+                <Text style={styles.rebuyButtonText}>Rebuy</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -115,12 +115,12 @@ export default function GameScreen({ room, players, rounds, onBack, onRecordRoun
         onPress={onRecordRound}
       >
         <Ionicons name="add-circle" size={24} color={AppColors.white} />
-        <Text style={styles.recordButtonText}>记录本轮盈亏</Text>
+        <Text style={styles.recordButtonText}>Record Round P/L</Text>
       </TouchableOpacity>
 
       <View style={styles.blockchainStatus}>
         <Ionicons name="shield-checkmark" size={16} color={AppColors.success} />
-        <Text style={styles.blockchainStatusText}>所有交易已通过区块链验证</Text>
+        <Text style={styles.blockchainStatusText}>All transactions verified on blockchain</Text>
       </View>
     </ThemedView>
     </SafeAreaView>
