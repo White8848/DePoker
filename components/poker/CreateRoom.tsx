@@ -7,17 +7,21 @@ import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 type Props = {
   onBack: () => void;
-  onCreateRoom: (name: string, initialChips: string) => void;
+  onCreateRoom: (name: string, buyInUnit: string, smallBlind: string, bigBlind: string) => void;
 };
 
 export default function CreateRoom({ onBack, onCreateRoom }: Props) {
   const [roomName, setRoomName] = React.useState('');
-  const [initialChips, setInitialChips] = React.useState('1000');
+  const [buyInUnit, setBuyInUnit] = React.useState('1000');
+  const [smallBlind, setSmallBlind] = React.useState('1');
+  const [bigBlind, setBigBlind] = React.useState('2');
 
   const handleCreate = () => {
-    onCreateRoom(roomName, initialChips);
+    onCreateRoom(roomName, buyInUnit, smallBlind, bigBlind);
     setRoomName('');
-    setInitialChips('1000');
+    setBuyInUnit('1000');
+    setSmallBlind('1');
+    setBigBlind('2');
   };
 
   return (
@@ -48,11 +52,40 @@ export default function CreateRoom({ onBack, onCreateRoom }: Props) {
             style={styles.input}
             placeholder="e.g., 1000"
             placeholderTextColor={AppColors.gray}
-            value={initialChips}
-            onChangeText={setInitialChips}
+            value={buyInUnit}
+            onChangeText={setBuyInUnit}
             keyboardType="numeric"
           />
           <Text style={styles.hint}>Players can only buy in multiples of 1 stack, default is 1 stack</Text>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Blinds</Text>
+          <View style={styles.blindsRow}>
+            <View style={styles.blindInput}>
+              <Text style={styles.blindLabel}>Small Blind</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="1"
+                placeholderTextColor={AppColors.gray}
+                value={smallBlind}
+                onChangeText={setSmallBlind}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={styles.blindInput}>
+              <Text style={styles.blindLabel}>Big Blind</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="2"
+                placeholderTextColor={AppColors.gray}
+                value={bigBlind}
+                onChangeText={setBigBlind}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+          <Text style={styles.hint}>Default blinds are 1/2</Text>
         </View>
 
         <View style={styles.blockchainInfo}>
@@ -115,6 +148,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: AppColors.lightGray,
     marginTop: 4,
+  },
+  blindsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  blindInput: {
+    flex: 1,
+  },
+  blindLabel: {
+    fontSize: 14,
+    color: AppColors.gray,
+    marginBottom: 8,
   },
   blockchainInfo: {
     flexDirection: 'row',

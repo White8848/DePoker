@@ -11,12 +11,12 @@ type Props = {
   players: Player[];
   rounds: Round[];
   onBack: () => void;
-  onRecordRound: () => void;
+  onStartNewRound: () => void;
   onShowSettlement: () => void;
   onRebuy: (playerId: string, hands: number) => void;
 };
 
-export default function GameScreen({ room, players, rounds, onBack, onRecordRound, onShowSettlement, onRebuy }: Props) {
+export default function GameScreen({ room, players, rounds, onBack, onStartNewRound, onShowSettlement, onRebuy }: Props) {
   const totalBuyIn = players.reduce((sum, p) => sum + p.buyIn, 0);
 
   const handleRebuy = (playerId: string) => {
@@ -112,10 +112,10 @@ export default function GameScreen({ room, players, rounds, onBack, onRecordRoun
 
       <TouchableOpacity
         style={styles.recordButton}
-        onPress={onRecordRound}
+        onPress={onStartNewRound}
       >
         <Ionicons name="add-circle" size={24} color={AppColors.white} />
-        <Text style={styles.recordButtonText}>Record Round P/L</Text>
+        <Text style={styles.recordButtonText}>Start New Round</Text>
       </TouchableOpacity>
 
       <View style={styles.blockchainStatus}>
