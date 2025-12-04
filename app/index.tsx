@@ -22,6 +22,9 @@ export default function PokerScreen() {
   const [currentRound, setCurrentRound] = useState<Round | null>(null);
   const [inGamePlay, setInGamePlay] = useState(false);
   
+  // 每个房间的玩家列表映射 (roomId -> Player[])
+  const [roomPlayers, setRoomPlayers] = useState<Map<string, Player[]>>(new Map());
+  
   // 区块链相关状态
   const [blockchainEnabled, setBlockchainEnabled] = useState(false);
   const [blockchainRoomId, setBlockchainRoomId] = useState<number | undefined>(undefined);
@@ -40,8 +43,18 @@ export default function PokerScreen() {
   }, []);
 
   const handleSelectRoom = (room: GameRoom) => {
-    // 切换房间时清空玩家列表和游戏状态
-    setPlayers([]);
+    // 保存当前房间的玩家列表（如果有的话）
+    if (selectedRoom && players.length > 0) {
+      const newRoomPlayers = new Map(roomPlayers);
+      newRoomPlayers.set(selectedRoom.id, players);
+      setRoomPlayers(newRoomPlayers);
+    }
+    
+    // 恢复新房间的玩家列表
+    const savedPlayers = roomPlayers.get(room.id) || [];
+    setPlayers(savedPlayers);
+    
+    // 清空游戏状态
     setRounds([]);
     setCurrentRound(null);
     setInGamePlay(false);
@@ -188,7 +201,15 @@ export default function PokerScreen() {
       position: players.length,
     };
     
-    setPlayers([...players, newPlayer]);
+    const updatedPlayers = [...players, newPlayer];
+    setPlayers(updatedPlayers);
+    
+    // 更新房间的玩家列表
+    if (selectedRoom) {
+      const newRoomPlayers = new Map(roomPlayers);
+      newRoomPlayers.set(selectedRoom.id, updatedPlayers);
+      setRoomPlayers(newRoomPlayers);
+    }
     
     // 保存玩家地址和私钥映射
     const newAddresses = new Map(playerAddresses);
@@ -429,7 +450,10 @@ export default function PokerScreen() {
     <>
       {currentView === 'rooms' && (
         <RoomsList
-          rooms={rooms}
+          rooms={rooms.map(room => ({
+            ...room,
+            playerCount: roomPlayers.get(room.id)?.length || 0
+          }))}
           onCreateRoom={() => setCurrentView('create')}
           onSelectRoom={handleSelectRoom}
         />
