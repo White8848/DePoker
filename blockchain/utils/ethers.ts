@@ -1,6 +1,7 @@
 // blockchain/utils/ethers.ts
 import { ethers } from 'ethers';
 import { DEPOKER2_CONTRACT, HARDHAT_NETWORK } from '../config/contract';
+import { HARDHAT_TEST_ACCOUNTS } from './wallet';
 
 /**
  * 获取 Provider (只读连接)
@@ -11,17 +12,19 @@ export function getProvider(): ethers.JsonRpcProvider {
 
 /**
  * 获取 Signer (可写连接 - 需要私钥)
- * @param privateKey 私钥 (可选，如果不提供则使用 provider)
+ * @param privateKey 私钥 (可选，默认使用 Hardhat 测试账户 #0)
  */
 export async function getSigner(privateKey?: string): Promise<ethers.Signer> {
   const provider = getProvider();
   
+  // 如果提供了私钥，使用该私钥
   if (privateKey) {
     return new ethers.Wallet(privateKey, provider);
   }
   
-  // 使用 Hardhat 本地账户 #0
-  return provider.getSigner(0);
+  // 默认使用 Hardhat 测试账户 #0 的私钥
+  // 这样在浏览器环境中也能正常工作
+  return new ethers.Wallet(HARDHAT_TEST_ACCOUNTS[0].privateKey, provider);
 }
 
 /**

@@ -34,6 +34,9 @@ export async function createRoom(buyIn: string, privateKey?: string): Promise<nu
     const signer = await getSigner(privateKey);
     const contract = getDePoker2Contract(signer);
     
+    // 先获取当前的 nextRoomId（创建前）
+    const nextRoomIdBefore = await contract.nextRoomId();
+    
     const buyInWei = parseEther(buyIn);
     const tx = await contract.createRoom(buyInWei);
     const receipt = await waitForTransaction(tx);
@@ -42,22 +45,11 @@ export async function createRoom(buyIn: string, privateKey?: string): Promise<nu
       throw new Error('Transaction failed');
     }
     
-    // 从事件中获取 roomId
-    const event = receipt.logs.find((log: any) => {
-      try {
-        const parsed = contract.interface.parseLog(log);
-        return parsed?.name === 'RoomCreated';
-      } catch {
-        return false;
-      }
-    });
+    // 创建成功后，新房间的 ID 就是之前的 nextRoomId
+    const roomId = Number(nextRoomIdBefore);
+    console.log(`✅ Room created with ID: ${roomId}`);
     
-    if (!event) {
-      throw new Error('RoomCreated event not found');
-    }
-    
-    const parsedEvent = contract.interface.parseLog(event);
-    return Number(parsedEvent?.args.roomId);
+    return roomId;
   } catch (error) {
     console.error('Error creating room:', error);
     throw error;

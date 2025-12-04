@@ -3,7 +3,7 @@ import { ThemedView } from '@/components/themed-view';
 import { AppColors } from '@/constants/colors';
 import { GameRoom, Player, PlayerAction, Round } from '@/types/game';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -22,6 +22,11 @@ export default function GamePlay({ room, players, currentRound, onBack, onPlayer
   
   const activePlayers = players.filter(p => !p.folded);
   const currentPlayer = players[currentRound.currentPlayerIndex];
+  
+  // 监控 Modal 状态变化
+  useEffect(() => {
+    console.log('showWinnerModal changed to:', showWinnerModal);
+  }, [showWinnerModal]);
   
   console.log('GamePlay render - Players:', players.length, 'Active:', activePlayers.length, 'Current:', currentPlayer?.name);
   
@@ -67,6 +72,7 @@ export default function GamePlay({ room, players, currentRound, onBack, onPlayer
 
   const handleEndRound = () => {
     console.log('End Round clicked - Active players:', activePlayers.length);
+    console.log('Current showWinnerModal state:', showWinnerModal);
     
     if (activePlayers.length === 0) {
       if (Platform.OS === 'web') {
@@ -79,7 +85,9 @@ export default function GamePlay({ room, players, currentRound, onBack, onPlayer
     
     if (Platform.OS === 'web') {
       // Web 平台使用 Modal
+      console.log('Setting showWinnerModal to true');
       setShowWinnerModal(true);
+      console.log('After setState - showWinnerModal:', showWinnerModal);
     } else {
       // 移动端使用 Alert.alert
       Alert.alert('End Round', 'Who won this round?', [

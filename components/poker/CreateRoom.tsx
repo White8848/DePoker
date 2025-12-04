@@ -3,11 +3,11 @@ import { ThemedView } from '@/components/themed-view';
 import { AppColors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 type Props = {
   onBack: () => void;
-  onCreateRoom: (name: string, buyInUnit: string, smallBlind: string, bigBlind: string) => void;
+  onCreateRoom: (name: string, buyInUnit: string, smallBlind: string, bigBlind: string, enableBlockchain: boolean) => void;
 };
 
 export default function CreateRoom({ onBack, onCreateRoom }: Props) {
@@ -15,13 +15,15 @@ export default function CreateRoom({ onBack, onCreateRoom }: Props) {
   const [buyInUnit, setBuyInUnit] = React.useState('1000');
   const [smallBlind, setSmallBlind] = React.useState('1');
   const [bigBlind, setBigBlind] = React.useState('2');
+  const [enableBlockchain, setEnableBlockchain] = React.useState(false);
 
   const handleCreate = () => {
-    onCreateRoom(roomName, buyInUnit, smallBlind, bigBlind);
+    onCreateRoom(roomName, buyInUnit, smallBlind, bigBlind, enableBlockchain);
     setRoomName('');
     setBuyInUnit('1000');
     setSmallBlind('1');
     setBigBlind('2');
+    setEnableBlockchain(false);
   };
 
   return (
@@ -88,10 +90,38 @@ export default function CreateRoom({ onBack, onCreateRoom }: Props) {
           <Text style={styles.hint}>Default blinds are 1/2</Text>
         </View>
 
+        <View style={styles.formGroup}>
+          <View style={styles.switchRow}>
+            <View style={styles.switchLabel}>
+              <Ionicons name="link" size={20} color={enableBlockchain ? AppColors.primary : AppColors.gray} />
+              <Text style={styles.label}>Enable Blockchain</Text>
+            </View>
+            <Switch
+              value={enableBlockchain}
+              onValueChange={setEnableBlockchain}
+              trackColor={{ false: AppColors.gray, true: AppColors.primary }}
+              thumbColor={enableBlockchain ? AppColors.white : AppColors.lightGray}
+            />
+          </View>
+          {enableBlockchain && (
+            <View style={styles.blockchainInfo}>
+              <Ionicons name="shield-checkmark" size={18} color={AppColors.success} />
+              <Text style={styles.blockchainInfoText}>
+                ✅ Room will be created on blockchain{'\n'}
+                ✅ All bets and results will be recorded on-chain{'\n'}
+                ✅ Player reputation system enabled{'\n'}
+                ✅ Minimum reputation: -3
+              </Text>
+            </View>
+          )}
+        </View>
+
         <View style={styles.blockchainInfo}>
           <Ionicons name="information-circle" size={20} color={AppColors.primary} />
           <Text style={styles.blockchainInfoText}>
-            Room will be registered on blockchain to ensure all transaction records are immutable
+            {enableBlockchain 
+              ? 'Blockchain mode: Transparent, fair, and immutable'
+              : 'Local mode: Quick setup for casual games'}
           </Text>
         </View>
 
@@ -160,6 +190,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: AppColors.gray,
     marginBottom: 8,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: AppColors.surfaceBackground,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  switchLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   blockchainInfo: {
     flexDirection: 'row',

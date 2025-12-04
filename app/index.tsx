@@ -1,3 +1,5 @@
+import { getHardhatAccounts, HARDHAT_TEST_ACCOUNTS, useDePoker2 } from '@/blockchain';
+import BlockchainGamePlay from '@/components/poker/BlockchainGamePlay';
 import BuyIn from '@/components/poker/BuyIn';
 import CreateRoom from '@/components/poker/CreateRoom';
 import GamePlay from '@/components/poker/GamePlay';
@@ -5,8 +7,8 @@ import GameScreen from '@/components/poker/GameScreen';
 import RoomsList from '@/components/poker/RoomsList';
 import SettlementScreen from '@/components/poker/SettlementScreen';
 import { Action, GameRoom, Player, PlayerAction, Round, ViewType } from '@/types/game';
-import React, { useState } from 'react';
-import { Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Platform } from 'react-native';
 
 export default function PokerScreen() {
   const [currentView, setCurrentView] = useState<ViewType>('rooms');
@@ -19,8 +21,35 @@ export default function PokerScreen() {
   const [rounds, setRounds] = useState<Round[]>([]);
   const [currentRound, setCurrentRound] = useState<Round | null>(null);
   const [inGamePlay, setInGamePlay] = useState(false);
+  
+  // 区块链相关状态
+  const [blockchainEnabled, setBlockchainEnabled] = useState(false);
+  const [blockchainRoomId, setBlockchainRoomId] = useState<number | undefined>(undefined);
+  const [playerAddresses, setPlayerAddresses] = useState<Map<string, string>>(new Map());
+  const [playerPrivateKeys, setPlayerPrivateKeys] = useState<Map<string, string>>(new Map());
+  const [testAccounts, setTestAccounts] = useState<string[]>([]);
+  
+  // 区块链 Hook
+  const { loading, error, createRoom, joinRoom, startRoom, getPlayerReputation } = useDePoker2();
+  
+  // 加载测试账户
+  useEffect(() => {
+    const accounts = getHardhatAccounts();
+    setTestAccounts(accounts);
+    console.log('📝 Loaded', accounts.length, 'test accounts');
+  }, []);
 
   const handleSelectRoom = (room: GameRoom) => {
+    // 切换房间时清空玩家列表和游戏状态
+    setPlayers([]);
+    setRounds([]);
+    setCurrentRound(null);
+    setInGamePlay(false);
+    setBlockchainEnabled(false);
+    setBlockchainRoomId(undefined);
+    setPlayerAddresses(new Map());
+    setPlayerPrivateKeys(new Map());
+    
     setSelectedRoom(room);
     if (room.status === 'waiting') {
       setCurrentView('buyin');
@@ -29,25 +58,125 @@ export default function PokerScreen() {
     }
   };
 
-  const handleCreateRoom = (name: string, buyInUnit: string, smallBlind: string, bigBlind: string) => {
+  const handleCreateRoom = async (name: string, buyInUnit: string, smallBlind: string, bigBlind: string, enableBlockchain: boolean = false) => {
+    const buyIn = parseFloat(buyInUnit);
+    const sb = parseFloat(smallBlind);
+    const bb = parseFloat(bigBlind);
+    
+    // 清空玩家列表和游戏状态（新房间）
+    setPlayers([]);
+    setRounds([]);
+    setCurrentRound(null);
+    setInGamePlay(false);
+    setPlayerAddresses(new Map());
+    setPlayerPrivateKeys(new Map());
+    
+    let blockchainId: number | undefined = undefined;
+    
+    // 如果启用区块链，先创建链上房间
+    if (enableBlockchain) {
+      console.log('🔗 Creating room on blockchain...');
+      const roomId = await createRoom(buyIn.toString()); // 传入买入金额作为字符串
+      
+      if (roomId !== null) {
+        blockchainId = roomId;
+        console.log('✅ Blockchain room created:', roomId);
+      } else {
+        const errorMsg = error || '区块链创建失败';
+        if (Platform.OS === 'web') {
+          alert(`Warning: ${errorMsg}\n将使用本地模式`);
+        } else {
+          Alert.alert('Warning', `${errorMsg}\n将使用本地模式`);
+        }
+      }
+    }
+    
     const newRoom: GameRoom = {
       id: Date.now().toString(),
       name,
       status: 'waiting',
       playerCount: 0,
       createdAt: new Date(),
-      buyInUnit: parseFloat(buyInUnit),
-      smallBlind: parseFloat(smallBlind),
-      bigBlind: parseFloat(bigBlind),
+      buyInUnit: buyIn,
+      smallBlind: sb,
+      bigBlind: bb,
     };
+    
     setRooms([newRoom, ...rooms]);
     setSelectedRoom(newRoom);
-    Alert.alert('Success', `Room created and registered on blockchain\nStack: $${buyInUnit}\nBlinds: $${smallBlind}/$${bigBlind}`, [
-      { text: 'Start Buy-in', onPress: () => setCurrentView('buyin') }
-    ]);
+    setBlockchainEnabled(enableBlockchain && blockchainId !== undefined);
+    setBlockchainRoomId(blockchainId);
+    
+    const message = enableBlockchain && blockchainId !== undefined
+      ? `Room created on blockchain!\nRoom ID: ${blockchainId}\nStack: $${buyIn}\nBlinds: $${sb}/$${bb}\nMin Reputation: -3`
+      : `Room created locally\nStack: $${buyIn}\nBlinds: $${sb}/$${bb}`;
+    
+    if (Platform.OS === 'web') {
+      alert(message);
+      setCurrentView('buyin');
+    } else {
+      Alert.alert('Success', message, [
+        { text: 'Start Buy-in', onPress: () => setCurrentView('buyin') }
+      ]);
+    }
   };
 
-  const handleAddPlayer = (name: string, amount: number) => {
+  const handleAddPlayer = async (name: string, amount: number) => {
+    // 检查名字是否重复
+    const nameExists = players.some(player => player.name.toLowerCase() === name.toLowerCase());
+    if (nameExists) {
+      const errorMsg = `Player name "${name}" already exists!`;
+      if (Platform.OS === 'web') {
+        alert(errorMsg);
+      } else {
+        Alert.alert('Error', errorMsg);
+      }
+      return;
+    }
+    
+    // 为玩家分配测试账户地址
+    const playerIndex = players.length;
+    const playerAddress = testAccounts[playerIndex] || testAccounts[0];
+    const playerPrivateKey = HARDHAT_TEST_ACCOUNTS[playerIndex]?.privateKey;
+    
+    let reputation = 0;
+    
+    // 如果启用区块链，先加入区块链房间
+    if (blockchainEnabled && blockchainRoomId !== undefined) {
+      console.log(`🔗 Adding player ${name} to blockchain room ${blockchainRoomId}...`);
+      console.log(`   Using account #${playerIndex}: ${playerAddress}`);
+      
+      if (!playerPrivateKey) {
+        const errorMsg = `No private key for player index ${playerIndex}`;
+        if (Platform.OS === 'web') {
+          alert(`Error: ${errorMsg}`);
+        } else {
+          Alert.alert('Error', errorMsg);
+        }
+        return;
+      }
+      
+      // 检查声誉
+      const rep = await getPlayerReputation(playerAddress);
+      reputation = rep !== null ? rep : 0;
+      console.log(`   Reputation: ${reputation}`);
+      
+      // 使用该玩家的私钥加入房间
+      const success = await joinRoom(blockchainRoomId, amount.toString(), playerPrivateKey);
+      
+      if (!success) {
+        const errorMsg = error || '无法加入区块链房间';
+        if (Platform.OS === 'web') {
+          alert(`Error: ${errorMsg}`);
+        } else {
+          Alert.alert('Error', errorMsg);
+        }
+        return;
+      }
+      
+      console.log('✅ Player joined blockchain room');
+    }
+    
     const newPlayer: Player = {
       id: Date.now().toString(),
       name,
@@ -58,8 +187,27 @@ export default function PokerScreen() {
       currentBet: 0,
       position: players.length,
     };
+    
     setPlayers([...players, newPlayer]);
-    Alert.alert('Success', 'Buy-in record verified on blockchain');
+    
+    // 保存玩家地址和私钥映射
+    const newAddresses = new Map(playerAddresses);
+    newAddresses.set(newPlayer.id, playerAddress);
+    setPlayerAddresses(newAddresses);
+    
+    const newPrivateKeys = new Map(playerPrivateKeys);
+    newPrivateKeys.set(newPlayer.id, playerPrivateKey);
+    setPlayerPrivateKeys(newPrivateKeys);
+    
+    const message = blockchainEnabled
+      ? `Player added to blockchain!\nAddress: ${playerAddress.slice(0, 6)}...${playerAddress.slice(-4)}\nReputation: ${reputation}`
+      : 'Player added';
+    
+    if (Platform.OS === 'web') {
+      alert(message);
+    } else {
+      Alert.alert('Success', message);
+    }
   };
 
   const handleStartGame = () => {
@@ -69,10 +217,65 @@ export default function PokerScreen() {
     setCurrentView('game');
   };
 
-  const handleStartNewRound = () => {
+  const handleStartNewRound = async () => {
     if (!selectedRoom || players.length < 2) {
-      Alert.alert('Error', 'Need at least 2 players to start a round');
+      const msg = 'Need at least 2 players to start a round';
+      if (Platform.OS === 'web') {
+        alert(msg);
+      } else {
+        Alert.alert('Error', msg);
+      }
       return;
+    }
+
+    // 如果启用区块链
+    if (blockchainEnabled && blockchainRoomId !== undefined) {
+      if (rounds.length === 0) {
+        // 第一轮：启动区块链房间
+        console.log(`🔗 Starting blockchain room ${blockchainRoomId}...`);
+        const success = await startRoom(blockchainRoomId);
+        
+        if (!success) {
+          const errorMsg = error || '无法启动区块链房间';
+          if (Platform.OS === 'web') {
+            alert(`Warning: ${errorMsg}\n将继续使用本地模式`);
+          } else {
+            Alert.alert('Warning', `${errorMsg}\n将继续使用本地模式`);
+          }
+        } else {
+          console.log('✅ Blockchain room started');
+        }
+      } else {
+        // 第二轮及以后：区块链房间已结算，需要创建新房间
+        const msg = '⚠️ Blockchain room has been settled.\n\nTo play another round on-chain, please:\n1. Go back to rooms list\n2. Create a new blockchain room\n3. Add players again\n\nOr continue playing locally (blockchain disabled).';
+        
+        if (Platform.OS === 'web') {
+          const continueLocal = confirm(msg + '\n\nContinue locally?');
+          if (continueLocal) {
+            // 禁用区块链模式，继续本地游戏
+            setBlockchainEnabled(false);
+            setBlockchainRoomId(undefined);
+          } else {
+            return; // 用户选择不继续
+          }
+        } else {
+          Alert.alert(
+            'Blockchain Room Settled',
+            msg,
+            [
+              {
+                text: 'Continue Locally',
+                onPress: () => {
+                  setBlockchainEnabled(false);
+                  setBlockchainRoomId(undefined);
+                }
+              },
+              { text: 'Cancel', style: 'cancel' }
+            ]
+          );
+          return;
+        }
+      }
     }
 
     // Reset player states
@@ -258,14 +461,29 @@ export default function PokerScreen() {
         />
       )}
       {currentView === 'game' && selectedRoom && inGamePlay && currentRound && (
-        <GamePlay
-          room={selectedRoom}
-          players={players}
-          currentRound={currentRound}
-          onBack={() => setInGamePlay(false)}
-          onPlayerAction={handlePlayerAction}
-          onEndRound={handleEndRound}
-        />
+        blockchainEnabled ? (
+          <BlockchainGamePlay
+            room={selectedRoom}
+            players={players}
+            currentRound={currentRound}
+            blockchainRoomId={blockchainRoomId}
+            playerAddress={playerAddresses.get(players[0]?.id)}
+            playerAddresses={playerAddresses}
+            playerPrivateKeys={playerPrivateKeys}
+            onBack={() => setInGamePlay(false)}
+            onPlayerAction={handlePlayerAction}
+            onEndRound={handleEndRound}
+          />
+        ) : (
+          <GamePlay
+            room={selectedRoom}
+            players={players}
+            currentRound={currentRound}
+            onBack={() => setInGamePlay(false)}
+            onPlayerAction={handlePlayerAction}
+            onEndRound={handleEndRound}
+          />
+        )
       )}
       {currentView === 'settlement' && (
         <SettlementScreen

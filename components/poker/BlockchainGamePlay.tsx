@@ -7,7 +7,7 @@ import { AppColors } from '@/constants/colors';
 import { GameRoom, Player, PlayerAction, Round } from '@/types/game';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = {
@@ -16,6 +16,8 @@ type Props = {
   currentRound: Round;
   blockchainRoomId?: number; // 区块链房间ID (可选)
   playerAddress?: string; // 当前玩家地址 (可选)
+  playerAddresses?: Map<string, string>; // 所有玩家地址映射 (playerId -> address)
+  playerPrivateKeys?: Map<string, string>; // 所有玩家私钥映射 (playerId -> privateKey)
   onBack: () => void;
   onPlayerAction: (playerId: string, action: PlayerAction, amount: number) => void;
   onEndRound: (winners: { playerId: string; amount: number }[]) => void;
@@ -27,6 +29,8 @@ export default function BlockchainGamePlay({
   currentRound, 
   blockchainRoomId,
   playerAddress,
+  playerAddresses,
+  playerPrivateKeys,
   onBack, 
   onPlayerAction, 
   onEndRound 
@@ -34,6 +38,7 @@ export default function BlockchainGamePlay({
   const [raiseAmount, setRaiseAmount] = useState('');
   const [blockchainEnabled, setBlockchainEnabled] = useState(false);
   const [roomInfo, setRoomInfo] = useState<any>(null);
+  const [showWinnerModal, setShowWinnerModal] = useState(false);
   
   const { 
     loading, 
@@ -46,6 +51,11 @@ export default function BlockchainGamePlay({
   
   const activePlayers = players.filter(p => !p.folded);
   const currentPlayer = players[currentRound.currentPlayerIndex];
+
+  // 监测 Modal 状态变化
+  useEffect(() => {
+    console.log('showWinnerModal changed:', showWinnerModal);
+  }, [showWinnerModal]);
 
   // 检查是否启用区块链
   useEffect(() => {
@@ -118,87 +128,183 @@ export default function BlockchainGamePlay({
 
   // 区块链结算
   const handleBlockchainFinalize = async (winnerAddress: string, localWinners: { playerId: string; amount: number }[]) => {
-    if (!blockchainRoomId || !winnerAddress) {
+    if (!blockchainRoomId || !winnerAddress || !playerAddresses || !playerPrivateKeys) {
       // 没有区块链，直接使用本地结算
       onEndRound(localWinners);
       return;
     }
 
-    Alert.alert(
-      'Blockchain Settlement',
-      'Do you want to finalize this round on the blockchain?',
-      [
-        {
-          text: 'Local Only',
-          onPress: () => onEndRound(localWinners),
-        },
-        {
-          text: 'Blockchain',
-          onPress: async () => {
-            const success = await finalizeRoom(blockchainRoomId, winnerAddress);
-            if (success) {
-              Alert.alert('Success', 'Round finalized on blockchain!');
-              onEndRound(localWinners);
-              loadRoomInfo();
-            } else if (error) {
-              Alert.alert('Error', error);
+    console.log('🔗 Finalizing blockchain room:', blockchainRoomId, 'Winner:', winnerAddress);
+    console.log('📊 All players:', players.map(p => p.name));
+    
+    // 在 Web 平台直接调用区块链结算
+    if (Platform.OS === 'web') {
+      try {
+        // 步骤1: 让所有玩家投票给赢家
+        console.log('📝 Step 1: All players voting for winner...');
+        for (const player of players) {
+          const playerAddr = playerAddresses.get(player.id);
+          const playerPrivateKey = playerPrivateKeys.get(player.id);
+          
+          if (playerAddr && playerPrivateKey) {
+            console.log(`  🗳️ ${player.name} (${playerAddr.slice(0, 6)}...) voting for winner...`);
+            const voteSuccess = await voteWinner(blockchainRoomId, winnerAddress, playerPrivateKey);
+            if (!voteSuccess) {
+              console.warn(`  ⚠️ ${player.name} vote failed (may have already voted)`);
+            } else {
+              console.log(`  ✅ ${player.name} voted successfully`);
             }
+          }
+        }
+        
+        // 步骤2: Creator 调用 finalize
+        console.log('🏁 Step 2: Finalizing room...');
+        const creatorPrivateKey = playerPrivateKeys.get(players[0]?.id); // 假设第一个玩家是 creator
+        const finalizeSuccess = await finalizeRoom(blockchainRoomId, winnerAddress, creatorPrivateKey);
+        
+        if (finalizeSuccess) {
+          console.log('✅ Round finalized on blockchain!');
+          onEndRound(localWinners);
+          loadRoomInfo();
+        } else if (error) {
+          console.error('❌ Blockchain finalization failed:', error);
+        }
+      } catch (err) {
+        console.error('❌ Error during blockchain finalization:', err);
+      }
+    } else {
+      // 移动平台使用 Alert 确认
+      Alert.alert(
+        'Blockchain Settlement',
+        'Do you want to finalize this round on the blockchain?',
+        [
+          {
+            text: 'Local Only',
+            onPress: () => onEndRound(localWinners),
           },
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+          {
+            text: 'Blockchain',
+            onPress: async () => {
+              try {
+                // 所有玩家投票
+                for (const player of players) {
+                  const playerPrivateKey = playerPrivateKeys.get(player.id);
+                  if (playerPrivateKey) {
+                    await voteWinner(blockchainRoomId, winnerAddress, playerPrivateKey);
+                  }
+                }
+                
+                // Creator finalize
+                const creatorPrivateKey = playerPrivateKeys.get(players[0]?.id);
+                const success = await finalizeRoom(blockchainRoomId, winnerAddress, creatorPrivateKey);
+                
+                if (success) {
+                  Alert.alert('Success', 'Round finalized on blockchain!');
+                  onEndRound(localWinners);
+                  loadRoomInfo();
+                } else if (error) {
+                  Alert.alert('Error', error);
+                }
+              } catch (err) {
+                Alert.alert('Error', String(err));
+              }
+            },
+          },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    }
   };
 
   const handleEndRound = () => {
     console.log('End Round clicked - Active players:', activePlayers.length);
     
     if (activePlayers.length === 0) {
-      Alert.alert('Error', 'No active players to award pot');
+      if (Platform.OS === 'web') {
+        console.error('No active players to award pot');
+      } else {
+        Alert.alert('Error', 'No active players to award pot');
+      }
       return;
     }
     
-    if (!blockchainEnabled) {
-      // 传统方式
-      Alert.alert('End Round', 'Who won this round?', [
-        { text: 'Cancel', style: 'cancel' },
-        ...activePlayers.map(player => ({
-          text: player.name,
-          onPress: () => {
-            console.log('Winner selected:', player.name);
-            onEndRound([{ playerId: player.id, amount: currentRound.pot }]);
-          }
-        })),
-        {
-          text: 'Split Pot',
-          onPress: () => {
-            const splitAmount = currentRound.pot / activePlayers.length;
-            onEndRound(activePlayers.map(p => ({ playerId: p.id, amount: splitAmount })));
-          }
-        }
-      ]);
+    // 在 Web 平台使用 Modal，在移动平台使用 Alert
+    if (Platform.OS === 'web') {
+      console.log('Opening winner selection modal');
+      setShowWinnerModal(true);
     } else {
-      // 区块链方式
-      Alert.alert('End Round (Blockchain)', 'Who won this round?', [
-        { text: 'Cancel', style: 'cancel' },
-        ...activePlayers.map(player => ({
-          text: player.name,
-          onPress: () => {
-            const winners = [{ playerId: player.id, amount: currentRound.pot }];
-            // 假设 player.id 与区块链地址关联，实际应用中需要映射
-            handleBlockchainFinalize(playerAddress || player.id, winners);
+      if (!blockchainEnabled) {
+        // 传统方式
+        Alert.alert('End Round', 'Who won this round?', [
+          { text: 'Cancel', style: 'cancel' },
+          ...activePlayers.map(player => ({
+            text: player.name,
+            onPress: () => {
+              console.log('Winner selected:', player.name);
+              onEndRound([{ playerId: player.id, amount: currentRound.pot }]);
+            }
+          })),
+          {
+            text: 'Split Pot',
+            onPress: () => {
+              const splitAmount = currentRound.pot / activePlayers.length;
+              onEndRound(activePlayers.map(p => ({ playerId: p.id, amount: splitAmount })));
+            }
           }
-        })),
-        {
-          text: 'Split Pot',
-          onPress: () => {
-            const splitAmount = currentRound.pot / activePlayers.length;
-            const winners = activePlayers.map(p => ({ playerId: p.id, amount: splitAmount }));
-            onEndRound(winners);
+        ]);
+      } else {
+        // 区块链方式
+        Alert.alert('End Round (Blockchain)', 'Who won this round?', [
+          { text: 'Cancel', style: 'cancel' },
+          ...activePlayers.map(player => ({
+            text: player.name,
+            onPress: () => {
+              const winners = [{ playerId: player.id, amount: currentRound.pot }];
+              // 假设 player.id 与区块链地址关联，实际应用中需要映射
+              handleBlockchainFinalize(playerAddress || player.id, winners);
+            }
+          })),
+          {
+            text: 'Split Pot',
+            onPress: () => {
+              const splitAmount = currentRound.pot / activePlayers.length;
+              const winners = activePlayers.map(p => ({ playerId: p.id, amount: splitAmount }));
+              onEndRound(winners);
+            }
           }
-        }
-      ]);
+        ]);
+      }
     }
+  };
+
+  const handleSelectWinner = (playerId: string) => {
+    console.log('Winner selected:', playerId);
+    setShowWinnerModal(false);
+    
+    const winners = [{ playerId, amount: currentRound.pot }];
+    
+    if (blockchainEnabled && playerAddresses) {
+      // 获取赢家的区块链地址
+      const winnerAddress = playerAddresses.get(playerId);
+      console.log('Winner address from map:', winnerAddress);
+      
+      if (winnerAddress) {
+        handleBlockchainFinalize(winnerAddress, winners);
+      } else {
+        console.error('❌ Winner address not found for player:', playerId);
+        // 降级到本地结算
+        onEndRound(winners);
+      }
+    } else {
+      onEndRound(winners);
+    }
+  };
+
+  const handleSplitPot = () => {
+    console.log('Split pot selected');
+    setShowWinnerModal(false);
+    const splitAmount = currentRound.pot / activePlayers.length;
+    onEndRound(activePlayers.map(p => ({ playerId: p.id, amount: splitAmount })));
   };
 
   const canCheck = currentPlayer && currentPlayer.currentBet === currentRound.currentBet;
@@ -283,36 +389,44 @@ export default function BlockchainGamePlay({
 
         {/* Players List */}
         <ScrollView style={styles.playersList}>
-          {players.map((player, index) => (
-            <View 
-              key={player.id} 
-              style={[
-                styles.playerCard,
-                player.id === currentPlayer?.id && styles.activePlayerCard,
-                player.folded && styles.foldedPlayerCard
-              ]}
-            >
-              <View style={styles.playerLeft}>
-                <View style={[styles.playerRank, player.folded && styles.foldedRank]}>
-                  <Text style={styles.rankText}>{index + 1}</Text>
+          {players.map((player, index) => {
+            const playerAddr = playerAddresses?.get(player.id);
+            return (
+              <View 
+                key={player.id} 
+                style={[
+                  styles.playerCard,
+                  player.id === currentPlayer?.id && styles.activePlayerCard,
+                  player.folded && styles.foldedPlayerCard
+                ]}
+              >
+                <View style={styles.playerLeft}>
+                  <View style={[styles.playerRank, player.folded && styles.foldedRank]}>
+                    <Text style={styles.rankText}>{index + 1}</Text>
+                  </View>
+                  <View style={styles.playerInfo}>
+                    <Text style={[styles.playerName, player.folded && styles.foldedText]}>
+                      {player.name}
+                      {player.folded && ' (Folded)'}
+                    </Text>
+                    <Text style={styles.playerChips}>
+                      ${player.currentChips} | Bet: ${player.currentBet}
+                    </Text>
+                    {blockchainEnabled && playerAddr && (
+                      <Text style={styles.playerAddress}>
+                        🔗 {playerAddr.slice(0, 6)}...{playerAddr.slice(-4)}
+                      </Text>
+                    )}
+                  </View>
                 </View>
-                <View>
-                  <Text style={[styles.playerName, player.folded && styles.foldedText]}>
-                    {player.name}
-                    {player.folded && ' (Folded)'}
-                  </Text>
-                  <Text style={styles.playerChips}>
-                    ${player.currentChips} | Bet: ${player.currentBet}
-                  </Text>
-                </View>
+                {index === currentRound.dealerPosition && (
+                  <View style={styles.dealerBadge}>
+                    <Text style={styles.dealerText}>D</Text>
+                  </View>
+                )}
               </View>
-              {index === currentRound.dealerPosition && (
-                <View style={styles.dealerBadge}>
-                  <Text style={styles.dealerText}>D</Text>
-                </View>
-              )}
-            </View>
-          ))}
+            );
+          })}
         </ScrollView>
 
         {/* Action Buttons */}
@@ -403,6 +517,53 @@ export default function BlockchainGamePlay({
           </Text>
         </TouchableOpacity>
       </ThemedView>
+
+      {/* Winner Selection Modal for Web */}
+      <Modal
+        visible={showWinnerModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowWinnerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              {blockchainEnabled ? 'Who won this round? (Blockchain)' : 'Who won this round?'}
+            </Text>
+            <Text style={styles.modalSubtitle}>Pot: ${currentRound.pot}</Text>
+            
+            <ScrollView style={styles.modalScroll}>
+              {activePlayers.map(player => (
+                <TouchableOpacity
+                  key={player.id}
+                  style={styles.modalButton}
+                  onPress={() => handleSelectWinner(player.id)}
+                >
+                  <Text style={styles.modalButtonText}>{player.name}</Text>
+                  <Text style={styles.modalButtonChips}>${player.currentChips}</Text>
+                </TouchableOpacity>
+              ))}
+              
+              <TouchableOpacity
+                style={[styles.modalButton, styles.splitButton]}
+                onPress={handleSplitPot}
+              >
+                <Text style={styles.modalButtonText}>Split Pot</Text>
+                <Text style={styles.modalButtonChips}>
+                  ${(currentRound.pot / activePlayers.length).toFixed(2)} each
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+            
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowWinnerModal(false)}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -575,6 +736,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  playerInfo: {
+    flex: 1,
+  },
   playerRank: {
     width: 28,
     height: 28,
@@ -603,6 +767,12 @@ const styles = StyleSheet.create({
   playerChips: {
     fontSize: 12,
     color: AppColors.lightGray,
+  },
+  playerAddress: {
+    fontSize: 10,
+    color: AppColors.primary,
+    marginTop: 2,
+    fontFamily: 'monospace',
   },
   dealerBadge: {
     width: 32,
@@ -702,5 +872,71 @@ const styles = StyleSheet.create({
     color: AppColors.danger,
     fontWeight: '600',
     flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: AppColors.surfaceBackground,
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: AppColors.white,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: AppColors.gold,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalScroll: {
+    maxHeight: 400,
+  },
+  modalButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: AppColors.cardBackground,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  splitButton: {
+    backgroundColor: AppColors.gold + '30',
+    borderWidth: 2,
+    borderColor: AppColors.gold,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: AppColors.white,
+  },
+  modalButtonChips: {
+    fontSize: 14,
+    color: AppColors.textSecondary,
+  },
+  modalCancelButton: {
+    backgroundColor: AppColors.danger,
+    padding: 14,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  modalCancelText: {
+    color: AppColors.white,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
