@@ -4,7 +4,7 @@ import { AppColors } from '@/constants/colors';
 import { GameRoom, Player, PlayerAction, Round } from '@/types/game';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Props = {
@@ -18,9 +18,12 @@ type Props = {
 
 export default function GamePlay({ room, players, currentRound, onBack, onPlayerAction, onEndRound }: Props) {
   const [raiseAmount, setRaiseAmount] = useState('');
+  const [showWinnerModal, setShowWinnerModal] = useState(false);
   
   const activePlayers = players.filter(p => !p.folded);
   const currentPlayer = players[currentRound.currentPlayerIndex];
+  
+  console.log('GamePlay render - Players:', players.length, 'Active:', activePlayers.length, 'Current:', currentPlayer?.name);
   
   const handleAction = (action: PlayerAction) => {
     if (!currentPlayer) return;
@@ -63,29 +66,63 @@ export default function GamePlay({ room, players, currentRound, onBack, onPlayer
   };
 
   const handleEndRound = () => {
-    Alert.alert('End Round', 'Who won this round?', [
-      { text: 'Cancel', style: 'cancel' },
-      ...activePlayers.map(player => ({
-        text: player.name,
-        onPress: () => {
-          onEndRound([{ playerId: player.id, amount: currentRound.pot }]);
-        }
-      })),
-      {
-        text: 'Split Pot',
-        onPress: () => {
-          const splitAmount = currentRound.pot / activePlayers.length;
-          onEndRound(activePlayers.map(p => ({ playerId: p.id, amount: splitAmount })));
-        }
+    console.log('End Round clicked - Active players:', activePlayers.length);
+    
+    if (activePlayers.length === 0) {
+      if (Platform.OS === 'web') {
+        alert('Error: No active players to award pot');
+      } else {
+        Alert.alert('Error', 'No active players to award pot');
       }
-    ]);
+      return;
+    }
+    
+    if (Platform.OS === 'web') {
+      // Web 平台使用 Modal
+      setShowWinnerModal(true);
+    } else {
+      // 移动端使用 Alert.alert
+      Alert.alert('End Round', 'Who won this round?', [
+        { text: 'Cancel', style: 'cancel' },
+        ...activePlayers.map(player => ({
+          text: player.name,
+          onPress: () => {
+            console.log('Winner selected:', player.name, 'Amount:', currentRound.pot);
+            onEndRound([{ playerId: player.id, amount: currentRound.pot }]);
+          }
+        })),
+        {
+          text: 'Split Pot',
+          onPress: () => {
+            const splitAmount = currentRound.pot / activePlayers.length;
+            console.log('Split pot:', splitAmount, 'per player');
+            onEndRound(activePlayers.map(p => ({ playerId: p.id, amount: splitAmount })));
+          }
+        }
+      ]);
+    }
+  };
+
+  const handleSelectWinner = (playerId: string) => {
+    console.log('Winner selected:', playerId, 'Amount:', currentRound.pot);
+    onEndRound([{ playerId, amount: currentRound.pot }]);
+    setShowWinnerModal(false);
+  };
+
+  const handleSplitPot = () => {
+    const splitAmount = currentRound.pot / activePlayers.length;
+    console.log('Split pot:', splitAmount, 'per player');
+    onEndRound(activePlayers.map(p => ({ playerId: p.id, amount: splitAmount })));
+    setShowWinnerModal(false);
   };
 
   const canCheck = currentPlayer && currentPlayer.currentBet === currentRound.currentBet;
   const needToCall = currentPlayer && currentPlayer.currentBet < currentRound.currentBet;
+  const isCurrentPlayerFolded = currentPlayer && currentPlayer.folded;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: AppColors.background }} edges={['top', 'bottom']}>
+      <View style={{ flex: 1 }}>
       <ThemedView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
@@ -171,6 +208,13 @@ export default function GamePlay({ room, players, currentRound, onBack, onPlayer
         {/* Action Buttons */}
         {currentPlayer && (
           <View style={styles.actionSection}>
+            {isCurrentPlayerFolded ? (
+              <View style={styles.foldedMessage}>
+                <Ionicons name="close-circle" size={24} color={AppColors.danger} />
+                <Text style={styles.foldedMessageText}>{currentPlayer.name} has folded - Waiting for next player</Text>
+              </View>
+            ) : (
+              <>
             <View style={styles.actionRow}>
               <TouchableOpacity
                 style={[styles.actionButton, styles.foldButton]}
@@ -226,17 +270,71 @@ export default function GamePlay({ room, players, currentRound, onBack, onPlayer
                 <Text style={styles.actionButtonText}>Raise</Text>
               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-              style={styles.endRoundButton}
-              onPress={handleEndRound}
-            >
-              <Ionicons name="flag" size={20} color={AppColors.white} />
-              <Text style={styles.endRoundButtonText}>End Round & Award Pot</Text>
-            </TouchableOpacity>
+            </>
+            )}
           </View>
         )}
+
+        {/* End Round button - always visible */}
+        <TouchableOpacity
+          style={styles.endRoundButton}
+          onPress={handleEndRound}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="flag" size={20} color={AppColors.white} />
+          <Text style={styles.endRoundButtonText}>End Round & Award Pot</Text>
+        </TouchableOpacity>
+        
+        <Text style={{ color: 'white', textAlign: 'center', marginTop: 8 }}>
+          DEBUG: Active Players = {activePlayers.length} | Platform: {Platform.OS}
+        </Text>
       </ThemedView>
+
+      {/* Winner Selection Modal for Web */}
+      <Modal
+        visible={showWinnerModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowWinnerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Who won this round?</Text>
+            <Text style={styles.modalSubtitle}>Pot: ${currentRound.pot}</Text>
+            
+            <ScrollView style={styles.modalScroll}>
+              {activePlayers.map(player => (
+                <TouchableOpacity
+                  key={player.id}
+                  style={styles.modalButton}
+                  onPress={() => handleSelectWinner(player.id)}
+                >
+                  <Text style={styles.modalButtonText}>{player.name}</Text>
+                  <Text style={styles.modalButtonChips}>${player.currentChips}</Text>
+                </TouchableOpacity>
+              ))}
+              
+              <TouchableOpacity
+                style={[styles.modalButton, styles.splitButton]}
+                onPress={handleSplitPot}
+              >
+                <Text style={styles.modalButtonText}>Split Pot</Text>
+                <Text style={styles.modalButtonChips}>
+                  ${(currentRound.pot / activePlayers.length).toFixed(2)} each
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+            
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowWinnerModal(false)}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      </View>
     </SafeAreaView>
   );
 }
@@ -461,10 +559,105 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    zIndex: 999,
+    marginTop: 8,
   },
   endRoundButtonText: {
     color: AppColors.black,
     fontSize: 15,
     fontWeight: '700',
+  },
+  foldedMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: AppColors.surfaceBackground,
+    borderRadius: 8,
+    gap: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: AppColors.danger,
+  },
+  foldedMessageText: {
+    fontSize: 14,
+    color: AppColors.danger,
+    fontWeight: '600',
+    flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: AppColors.cardBackground,
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: AppColors.white,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 18,
+    color: AppColors.gold,
+    textAlign: 'center',
+    marginBottom: 20,
+    fontWeight: '600',
+  },
+  modalScroll: {
+    maxHeight: 400,
+  },
+  modalButton: {
+    backgroundColor: AppColors.surfaceBackground,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: AppColors.primary,
+  },
+  splitButton: {
+    borderColor: AppColors.warning,
+    backgroundColor: AppColors.warning + '20',
+  },
+  modalButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: AppColors.white,
+  },
+  modalButtonChips: {
+    fontSize: 16,
+    color: AppColors.lightGray,
+  },
+  modalCancelButton: {
+    backgroundColor: AppColors.danger,
+    padding: 14,
+    borderRadius: 12,
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: AppColors.white,
   },
 });

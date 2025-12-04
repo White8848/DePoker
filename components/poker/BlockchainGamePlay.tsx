@@ -151,6 +151,13 @@ export default function BlockchainGamePlay({
   };
 
   const handleEndRound = () => {
+    console.log('End Round clicked - Active players:', activePlayers.length);
+    
+    if (activePlayers.length === 0) {
+      Alert.alert('Error', 'No active players to award pot');
+      return;
+    }
+    
     if (!blockchainEnabled) {
       // 传统方式
       Alert.alert('End Round', 'Who won this round?', [
@@ -158,6 +165,7 @@ export default function BlockchainGamePlay({
         ...activePlayers.map(player => ({
           text: player.name,
           onPress: () => {
+            console.log('Winner selected:', player.name);
             onEndRound([{ playerId: player.id, amount: currentRound.pot }]);
           }
         })),
@@ -195,6 +203,7 @@ export default function BlockchainGamePlay({
 
   const canCheck = currentPlayer && currentPlayer.currentBet === currentRound.currentBet;
   const needToCall = currentPlayer && currentPlayer.currentBet < currentRound.currentBet;
+  const isCurrentPlayerFolded = currentPlayer && currentPlayer.folded;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: AppColors.background }} edges={['top', 'bottom']}>
@@ -309,6 +318,13 @@ export default function BlockchainGamePlay({
         {/* Action Buttons */}
         {currentPlayer && (
           <View style={styles.actionSection}>
+            {isCurrentPlayerFolded ? (
+              <View style={styles.foldedMessage}>
+                <Ionicons name="close-circle" size={24} color={AppColors.danger} />
+                <Text style={styles.foldedMessageText}>{currentPlayer.name} has folded - Waiting for next player</Text>
+              </View>
+            ) : (
+              <>
             <View style={styles.actionRow}>
               <TouchableOpacity
                 style={[styles.actionButton, styles.foldButton]}
@@ -370,19 +386,22 @@ export default function BlockchainGamePlay({
                 <Text style={styles.actionButtonText}>Raise</Text>
               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-              style={styles.endRoundButton}
-              onPress={handleEndRound}
-              disabled={loading}
-            >
-              <Ionicons name="flag" size={20} color={AppColors.white} />
-              <Text style={styles.endRoundButtonText}>
-                {blockchainEnabled ? 'End Round & Vote on Chain' : 'End Round & Award Pot'}
-              </Text>
-            </TouchableOpacity>
+            </>
+            )}
           </View>
         )}
+
+        {/* End Round button - always visible */}
+        <TouchableOpacity
+          style={styles.endRoundButton}
+          onPress={handleEndRound}
+          disabled={loading}
+        >
+          <Ionicons name="flag" size={20} color={AppColors.white} />
+          <Text style={styles.endRoundButtonText}>
+            {blockchainEnabled ? 'End Round & Vote on Chain' : 'End Round & Award Pot'}
+          </Text>
+        </TouchableOpacity>
       </ThemedView>
     </SafeAreaView>
   );
@@ -657,10 +676,31 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    marginTop: 8,
   },
   endRoundButtonText: {
     color: AppColors.black,
     fontSize: 15,
     fontWeight: '700',
+  },
+  foldedMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: AppColors.surfaceBackground,
+    borderRadius: 8,
+    gap: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: AppColors.danger,
+  },
+  foldedMessageText: {
+    fontSize: 14,
+    color: AppColors.danger,
+    fontWeight: '600',
+    flex: 1,
   },
 });
