@@ -1,60 +1,74 @@
-# DePoker - 德扑记账应用 🎮
+# DePoker - Poker Ledger Application 🎮
 
-基于区块链技术的德州扑克记账应用，确保游戏过程的透明性和数据不可篡改性。
+A blockchain-based Texas Hold'em poker accounting application that ensures game transparency and data immutability.
 
-## 快速开始
+## Quick Start
 
-1. 安装依赖
+1. Install dependencies
 
    ```bash
    npm install
    ```
 
-2. 启动应用
+2. Start the app
 
    ```bash
    npm start
    ```
 
-3. 运行应用
+3. Run the app
 
    - Android: `npm run android`
    - iOS: `npm run ios`
    - Web: `npm run web`
 
-## 功能特性
+## Features
 
-✅ 创建游戏房间  
-✅ 玩家买入管理  
-✅ 实时筹码追踪  
-✅ 盈亏自动计算  
-✅ 游戏结算与转账指引  
-🔄 区块链验证（开发中）
+✅ Create game rooms  
+✅ Player buy-in management  
+✅ Real-time chip tracking  
+✅ Automatic profit/loss calculation  
+✅ Game settlement with transfer instructions  
+✅ Live poker gameplay with standard actions  
+✅ Automatic blind collection  
+🔄 Blockchain verification (in development)
 
-## 项目结构
+## Project Structure
 
-详细的项目结构说明请查看 [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)
+For detailed project structure, please see [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)
 
-## UI设计
+## UI Design
 
-完整的UI设计文档请查看 [UI_DESIGN.md](./UI_DESIGN.md)
+For complete UI design documentation, please see [UI_DESIGN.md](./UI_DESIGN.md)
 
-## 技术栈
+## Tech Stack
 
 - React Native (Expo ~54.0.25)
 - TypeScript
 - Expo Router
 - React Native Safe Area Context
+- React Native Community Slider
 
-## 开发计划
+## Game Features
 
-- [ ] 记录每轮盈亏详细功能
-- [ ] 多人验证机制
-- [ ] 区块链集成
-- [ ] 数据持久化
-- [ ] 钱包集成
+- **Room Setup**: Configure buy-in units, small blind, and big blind
+- **Player Management**: Multiple players with stack-based buy-ins
+- **Live Gameplay**: Fold, Check, Call, Raise, All-in actions
+- **Automatic Calculations**: Auto-deduct blinds, calculate pots, track bets
+- **Settlement**: Clear profit/loss breakdown with transfer instructions
+- **Blockchain Ready**: All actions designed for blockchain verification
 
-## 许可证
+## Development Roadmap
+
+- [x] Real-time poker gameplay
+- [x] Automatic blind collection
+- [x] Multi-player support
+- [ ] Blockchain integration
+- [ ] Data persistence
+- [ ] Wallet integration
+- [ ] Multi-signature verification
+
+## License
 
 MIT
 
